@@ -1,0 +1,52 @@
+# Build files
+build/
+bin/
+obj/
+*.o
+*.obj
+*.exe
+*.out
+*.dll
+*.so
+*.a
+*.lib
+
+# CMake
+CMakeFiles/
+CMakeCache.txt
+cmake_install.cmake
+Makefile
+
+# Visual Studio
+*.vcxproj*
+*.sln
+*.user
+*.opensdf
+*.sdf
+*.ipch
+*.ncb
+*.log
+
+# macOS
+.DS_Store
+
+# Linux
+*~
+
+# Windows
+Thumbs.db
+desktop.ini
+
+# GLEW/GLFW temp or build files (if manually compiled)
+glew*/bin/
+glew*/lib/
+glew*/include/
+glfw*/build/
+glfw*/bin/
+glfw*/lib/
+
+# Misc
+*.log
+*.tmp
+
+mingw32/
