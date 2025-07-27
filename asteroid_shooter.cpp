@@ -1,5 +1,5 @@
 // asteroid_shooter.cpp
-// A simple 2D space shooter game using OpenGL and GLUT
+// A 2D space shooter game with end-game score report
 
 #include <GL/glut.h>
 #include <cmath>
@@ -8,6 +8,9 @@
 #include <ctime>
 #include <cstring>
 #include <cstdio>
+#include <iostream>
+#include <iomanip>
+#include <algorithm>
 
 // Game structures
 struct Point {
@@ -56,6 +59,15 @@ bool gameWon = false;
 int level = 1;
 float respawnTimer = 0;
 
+// Statistics tracking
+int totalAsteroidsDestroyed = 0;
+int largeAsteroidsDestroyed = 0;
+int mediumAsteroidsDestroyed = 0;
+int smallAsteroidsDestroyed = 0;
+int livesLost = 0;
+time_t gameStartTime;
+bool showScoreReport = false;
+
 // Game constants
 const float SHIP_SIZE = 0.02f;
 const float BULLET_SPEED = 0.01f;
@@ -64,15 +76,16 @@ const float ASTEROID_MIN_SIZE = 0.03f;
 const float ASTEROID_MAX_SIZE = 0.08f;
 const int INITIAL_ASTEROIDS = 5;
 
-// FIXED: Properly initialize special keys array
-bool specialKeys[256] = { false }; // Track special key states
+bool specialKeys[256] = { false };
 
-// Forward declaration
+// Forward declarations
 void createAsteroids(int count);
+void displayGameReport();
 
 // Initialize game
 void initGame() {
     srand(time(0));
+    gameStartTime = time(0);
 
     // Initialize player
     player.pos = Point(0, 0);
@@ -104,6 +117,14 @@ void initGame() {
     gameOver = false;
     gameWon = false;
     respawnTimer = 0;
+    showScoreReport = false;
+
+    // Reset session stats
+    totalAsteroidsDestroyed = 0;
+    largeAsteroidsDestroyed = 0;
+    mediumAsteroidsDestroyed = 0;
+    smallAsteroidsDestroyed = 0;
+    livesLost = 0;
 }
 
 void createAsteroids(int count) {
@@ -126,7 +147,144 @@ void createAsteroids(int count) {
     }
 }
 
-// Draw functions
+void displayGameReport() {
+    glClear(GL_COLOR_BUFFER_BIT);
+
+    float survivalTime = difftime(time(0), gameStartTime);
+    int rating = (score / 1000) + (totalAsteroidsDestroyed / 10) + (level * 5);
+
+    const char* rank = "Cadet";
+    if (rating >= 80) rank = "Space Admiral";
+    else if (rating >= 60) rank = "Squadron Leader";
+    else if (rating >= 40) rank = "Ace Pilot";
+    else if (rating >= 25) rank = "Veteran";
+    else if (rating >= 15) rank = "Pilot";
+
+    glColor3f(1.0f, 1.0f, 0.0f);
+    glRasterPos2f(-0.3f, 0.8f);
+    const char* title = "ASTEROID SHOOTER - GAME REPORT";
+    for (int i = 0; title[i]; i++) {
+        glutBitmapCharacter(GLUT_BITMAP_HELVETICA_18, title[i]);
+    }
+
+    // Draw a line under title
+    glColor3f(0.5f, 0.5f, 0.5f);
+    glBegin(GL_LINES);
+    glVertex2f(-0.6f, 0.75f);
+    glVertex2f(0.6f, 0.75f);
+    glEnd();
+
+    glColor3f(1.0f, 1.0f, 1.0f);
+
+    char buffer[100];
+    float yPos = 0.6f;
+
+    // Final Statistics
+    glRasterPos2f(-0.5f, yPos);
+    const char* statsTitle = "FINAL STATISTICS:";
+    for (int i = 0; statsTitle[i]; i++) {
+        glutBitmapCharacter(GLUT_BITMAP_HELVETICA_18, statsTitle[i]);
+    }
+    yPos -= 0.08f;
+
+    sprintf(buffer, "Final Score: %d", score);
+    glRasterPos2f(-0.4f, yPos);
+    for (int i = 0; buffer[i]; i++) {
+        glutBitmapCharacter(GLUT_BITMAP_HELVETICA_12, buffer[i]);
+    }
+    yPos -= 0.06f;
+
+    sprintf(buffer, "Level Reached: %d", level);
+    glRasterPos2f(-0.4f, yPos);
+    for (int i = 0; buffer[i]; i++) {
+        glutBitmapCharacter(GLUT_BITMAP_HELVETICA_12, buffer[i]);
+    }
+    yPos -= 0.06f;
+
+    sprintf(buffer, "Asteroids Destroyed: %d", totalAsteroidsDestroyed);
+    glRasterPos2f(-0.4f, yPos);
+    for (int i = 0; buffer[i]; i++) {
+        glutBitmapCharacter(GLUT_BITMAP_HELVETICA_12, buffer[i]);
+    }
+    yPos -= 0.06f;
+
+    sprintf(buffer, "Survival Time: %d seconds", (int)survivalTime);
+    glRasterPos2f(-0.4f, yPos);
+    for (int i = 0; buffer[i]; i++) {
+        glutBitmapCharacter(GLUT_BITMAP_HELVETICA_12, buffer[i]);
+    }
+    yPos -= 0.06f;
+
+    sprintf(buffer, "Lives Lost: %d", livesLost);
+    glRasterPos2f(-0.4f, yPos);
+    for (int i = 0; buffer[i]; i++) {
+        glutBitmapCharacter(GLUT_BITMAP_HELVETICA_12, buffer[i]);
+    }
+    yPos -= 0.12f;
+
+    // Asteroid Breakdown
+    glRasterPos2f(-0.5f, yPos);
+    const char* breakdownTitle = "ASTEROID BREAKDOWN:";
+    for (int i = 0; breakdownTitle[i]; i++) {
+        glutBitmapCharacter(GLUT_BITMAP_HELVETICA_18, breakdownTitle[i]);
+    }
+    yPos -= 0.08f;
+
+    sprintf(buffer, "Large Asteroids: %d", largeAsteroidsDestroyed);
+    glRasterPos2f(-0.4f, yPos);
+    for (int i = 0; buffer[i]; i++) {
+        glutBitmapCharacter(GLUT_BITMAP_HELVETICA_12, buffer[i]);
+    }
+    yPos -= 0.06f;
+
+    sprintf(buffer, "Medium Asteroids: %d", mediumAsteroidsDestroyed);
+    glRasterPos2f(-0.4f, yPos);
+    for (int i = 0; buffer[i]; i++) {
+        glutBitmapCharacter(GLUT_BITMAP_HELVETICA_12, buffer[i]);
+    }
+    yPos -= 0.06f;
+
+    sprintf(buffer, "Small Asteroids: %d", smallAsteroidsDestroyed);
+    glRasterPos2f(-0.4f, yPos);
+    for (int i = 0; buffer[i]; i++) {
+        glutBitmapCharacter(GLUT_BITMAP_HELVETICA_12, buffer[i]);
+    }
+    yPos -= 0.12f;
+
+    // Performance Rating
+    glColor3f(1.0f, 1.0f, 0.0f);
+    glRasterPos2f(-0.5f, yPos);
+    const char* ratingTitle = "PERFORMANCE RATING:";
+    for (int i = 0; ratingTitle[i]; i++) {
+        glutBitmapCharacter(GLUT_BITMAP_HELVETICA_18, ratingTitle[i]);
+    }
+    yPos -= 0.08f;
+
+    glColor3f(0.0f, 1.0f, 0.0f);
+    sprintf(buffer, "Rank: %s", rank);
+    glRasterPos2f(-0.4f, yPos);
+    for (int i = 0; buffer[i]; i++) {
+        glutBitmapCharacter(GLUT_BITMAP_HELVETICA_12, buffer[i]);
+    }
+    yPos -= 0.06f;
+
+    sprintf(buffer, "Overall Rating: %d/100", rating);
+    glRasterPos2f(-0.4f, yPos);
+    for (int i = 0; buffer[i]; i++) {
+        glutBitmapCharacter(GLUT_BITMAP_HELVETICA_12, buffer[i]);
+    }
+
+    // Instructions
+    glColor3f(0.7f, 0.7f, 0.7f);
+    glRasterPos2f(-0.3f, -0.8f);
+    const char* instructions = "Press any key to return to game";
+    for (int i = 0; instructions[i]; i++) {
+        glutBitmapCharacter(GLUT_BITMAP_HELVETICA_12, instructions[i]);
+    }
+
+    glutSwapBuffers();
+}
+
 void drawStar(const Star& star) {
     glColor3f(star.brightness, star.brightness, star.brightness);
     glPointSize(1.0f);
@@ -140,7 +298,6 @@ void drawShip(const Ship& ship) {
     glTranslatef(ship.pos.x, ship.pos.y, 0);
     glRotatef(ship.angle * 180.0f / M_PI, 0, 0, 1);
 
-    // Ship body
     glColor3f(1.0f, 1.0f, 1.0f);
     glBegin(GL_LINE_LOOP);
     glVertex2f(ship.size, 0);
@@ -149,7 +306,6 @@ void drawShip(const Ship& ship) {
     glVertex2f(-ship.size, -ship.size * 0.7f);
     glEnd();
 
-    // Thruster flame
     if (ship.thrusting) {
         glColor3f(1.0f, 0.5f, 0.0f);
         glBegin(GL_TRIANGLES);
@@ -212,8 +368,8 @@ void drawHUD() {
 
     if (gameOver) {
         glColor3f(1.0f, 0.0f, 0.0f);
-        glRasterPos2f(-0.1f, 0.0f);
-        const char* text = "GAME OVER! Press R to restart";
+        glRasterPos2f(-0.15f, 0.0f);
+        const char* text = "GAME OVER! Press R for report, S to restart";
         for (int i = 0; text[i]; i++) {
             glutBitmapCharacter(GLUT_BITMAP_HELVETICA_18, text[i]);
         }
@@ -228,16 +384,14 @@ void drawHUD() {
         }
     }
 
-    // Controls
     glColor3f(0.7f, 0.7f, 0.7f);
     glRasterPos2f(-0.95f, -0.85f);
-    const char* controls = "Controls: Arrow Keys = Move, Space = Shoot, R = Restart";
+    const char* controls = "Controls: Arrows=Move, Space=Shoot, R=Report, S=Restart";
     for (int i = 0; controls[i]; i++) {
         glutBitmapCharacter(GLUT_BITMAP_HELVETICA_12, controls[i]);
     }
 }
 
-// Collision detection
 bool checkCollision(Point p1, float r1, Point p2, float r2) {
     float dx = p1.x - p2.x;
     float dy = p1.y - p2.y;
@@ -245,7 +399,6 @@ bool checkCollision(Point p1, float r1, Point p2, float r2) {
     return distance < (r1 + r2);
 }
 
-// Wrap around screen
 void wrapPosition(Point& pos) {
     if (pos.x > 1.0f) pos.x = -1.0f;
     if (pos.x < -1.0f) pos.x = 1.0f;
@@ -253,7 +406,6 @@ void wrapPosition(Point& pos) {
     if (pos.y < -1.0f) pos.y = 1.0f;
 }
 
-// Update game logic
 void updateGame() {
     if (gameOver || gameWon) return;
 
@@ -261,7 +413,6 @@ void updateGame() {
     const float THRUST = 0.0005f;
     const float FRICTION = 0.99f;
 
-    // FIXED: Handle thrust
     if (specialKeys[GLUT_KEY_UP]) {
         player.thrusting = true;
         player.velocity.x += cos(player.angle) * THRUST;
@@ -271,7 +422,6 @@ void updateGame() {
         player.thrusting = false;
     }
 
-    // FIXED: Handle rotation
     if (specialKeys[GLUT_KEY_LEFT]) {
         player.angle += ROTATION_SPEED;
     }
@@ -280,23 +430,19 @@ void updateGame() {
         player.angle -= ROTATION_SPEED;
     }
 
-    // FIXED: Handle braking/reverse thrust
     if (specialKeys[GLUT_KEY_DOWN]) {
         player.velocity.x *= 0.9f;
         player.velocity.y *= 0.9f;
     }
 
-    // Apply friction
     player.velocity.x *= FRICTION;
     player.velocity.y *= FRICTION;
 
-    // Update position
     player.pos.x += player.velocity.x;
     player.pos.y += player.velocity.y;
 
     wrapPosition(player.pos);
 
-    // Update bullets
     for (auto it = bullets.begin(); it != bullets.end();) {
         it->pos.x += it->velocity.x;
         it->pos.y += it->velocity.y;
@@ -312,7 +458,6 @@ void updateGame() {
         }
     }
 
-    // Update asteroids
     for (auto& asteroid : asteroids) {
         asteroid.pos.x += asteroid.velocity.x;
         asteroid.pos.y += asteroid.velocity.y;
@@ -321,7 +466,6 @@ void updateGame() {
         wrapPosition(asteroid.pos);
     }
 
-    // Update stars
     for (auto& star : stars) {
         star.twinkle += 0.1f;
         star.brightness = 0.3f + 0.4f * (0.5f + 0.5f * sin(star.twinkle));
@@ -333,9 +477,23 @@ void updateGame() {
 
         for (auto asteroidIt = asteroids.begin(); asteroidIt != asteroids.end();) {
             if (checkCollision(bulletIt->pos, 0.01f, asteroidIt->pos, asteroidIt->size)) {
-                score += 10;
+                totalAsteroidsDestroyed++;
 
-                // Break asteroid into smaller pieces
+                // Track asteroid sizes and award points
+                if (asteroidIt->size > ASTEROID_MAX_SIZE * 0.8f) {
+                    largeAsteroidsDestroyed++;
+                    score += 20;
+                }
+                else if (asteroidIt->size > ASTEROID_MIN_SIZE * 1.5f) {
+                    mediumAsteroidsDestroyed++;
+                    score += 15;
+                }
+                else {
+                    smallAsteroidsDestroyed++;
+                    score += 10;
+                }
+
+                // Split large asteroids
                 if (asteroidIt->size > ASTEROID_MIN_SIZE * 1.5f) {
                     for (int i = 0; i < 2; i++) {
                         Asteroid newAsteroid;
@@ -366,12 +524,13 @@ void updateGame() {
         }
     }
 
-    // Check player-asteroid collisions
+    // Check ship-asteroid collisions
     if (respawnTimer <= 0) {
         for (const auto& asteroid : asteroids) {
             if (checkCollision(player.pos, player.size, asteroid.pos, asteroid.size)) {
                 lives--;
-                respawnTimer = 120; // 2 seconds of invincibility
+                livesLost++;
+                respawnTimer = 120;
 
                 if (lives <= 0) {
                     gameOver = true;
@@ -390,44 +549,47 @@ void updateGame() {
     }
 }
 
-// Display function
 void display() {
+    if (showScoreReport) {
+        displayGameReport();
+        return;
+    }
+
     glClear(GL_COLOR_BUFFER_BIT);
 
-    // Draw stars
     for (const auto& star : stars) {
         drawStar(star);
     }
 
-    // Draw asteroids
     for (const auto& asteroid : asteroids) {
         drawAsteroid(asteroid);
     }
 
-    // Draw bullets
     for (const auto& bullet : bullets) {
         drawBullet(bullet);
     }
 
-    // Draw player (with respawn flashing)
     if (respawnTimer <= 0 || (((int)respawnTimer) % 10) < 5) {
         drawShip(player);
     }
 
-    // Draw HUD
     drawHUD();
 
     glutSwapBuffers();
 }
 
-// Keyboard input
 bool keys[256] = { false };
 
 void keyDown(unsigned char key, int x, int y) {
     keys[key] = true;
 
+    if (showScoreReport) {
+        // Any key press while showing report returns to game
+        showScoreReport = false;
+        return;
+    }
+
     if (key == ' ') {
-        // Shoot bullet
         if (bullets.size() < 10) {
             Bullet bullet;
             bullet.pos = player.pos;
@@ -440,9 +602,13 @@ void keyDown(unsigned char key, int x, int y) {
 
     if (key == 'r' || key == 'R') {
         if (gameOver) {
-            level = 1;
-            initGame();
+            showScoreReport = true;
         }
+    }
+
+    if (key == 's' || key == 'S') {
+        level = 1;
+        initGame();
     }
 
     if (key == 'n' || key == 'N') {
@@ -462,27 +628,24 @@ void keyUp(unsigned char key, int x, int y) {
     keys[key] = false;
 }
 
-// FIXED: Proper special key handling
 void specialKeyDown(int key, int x, int y) {
-    if (key < 256) {  // Safety check
+    if (key < 256) {
         specialKeys[key] = true;
     }
 }
 
 void specialKeyUp(int key, int x, int y) {
-    if (key < 256) {  // Safety check
+    if (key < 256) {
         specialKeys[key] = false;
     }
 }
 
-// Timer function
 void timer(int value) {
     updateGame();
     glutPostRedisplay();
-    glutTimerFunc(16, timer, 0); // 60 FPS
+    glutTimerFunc(16, timer, 0);
 }
 
-// Initialize OpenGL
 void init() {
     glClearColor(0.0f, 0.0f, 0.1f, 1.0f);
     glEnable(GL_POINT_SMOOTH);
@@ -493,12 +656,11 @@ void init() {
     initGame();
 }
 
-// Main function
 int main(int argc, char** argv) {
     glutInit(&argc, argv);
     glutInitDisplayMode(GLUT_DOUBLE | GLUT_RGB);
     glutInitWindowSize(800, 600);
-    glutCreateWindow("Asteroid Shooter - Classic Space Game!");
+    glutCreateWindow("Asteroid Shooter - With Game Report");
 
     init();
 
@@ -509,18 +671,24 @@ int main(int argc, char** argv) {
     glutSpecialUpFunc(specialKeyUp);
     glutTimerFunc(16, timer, 0);
 
-    printf("=== ASTEROID SHOOTER ===\n");
-    printf("Controls:\n");
-    printf("  Arrow Keys - Steer and thrust\n");
-    printf("  UP - Thrust forward\n");
-    printf("  DOWN - Brake/slow down\n");
-    printf("  LEFT/RIGHT - Rotate\n");
-    printf("  Spacebar - Shoot\n");
-    printf("  R - Restart game\n");
-    printf("  N - Next level (when level complete)\n");
-    printf("\nObjective: Destroy all asteroids!\n");
-    printf("Large asteroids break into smaller ones.\n");
-    printf("Avoid colliding with asteroids!\n\n");
+    printf("╔══════════════════════════════════════════════════════════════╗\n");
+    printf("║                🚀 ASTEROID SHOOTER GAME 🌌                  ║\n");
+    printf("╚══════════════════════════════════════════════════════════════╝\n\n");
+    printf("🎮 CONTROLS:\n");
+    printf("   ⬆️  UP Arrow    - Thrust forward\n");
+    printf("   ⬇️  DOWN Arrow  - Brake/slow down\n");
+    printf("   ⬅️  LEFT Arrow  - Rotate left\n");
+    printf("   ➡️  RIGHT Arrow - Rotate right\n");
+    printf("   🚀 SPACEBAR    - Shoot\n");
+    printf("   📊 R Key       - Show game report (after game over)\n");
+    printf("   🔄 S Key       - Start new game\n");
+    printf("   ➡️  N Key       - Next level (when available)\n\n");
+    printf("🎯 OBJECTIVES:\n");
+    printf("   💥 Destroy all asteroids to advance levels\n");
+    printf("   🌟 Survive as long as possible\n");
+    printf("   📈 Get the highest score\n\n");
+    printf("Press any key to start!\n");
+    getchar();
 
     glutMainLoop();
     return 0;

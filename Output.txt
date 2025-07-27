@@ -1,14 +1,20 @@
-=== ASTEROID SHOOTER ===
-Controls:
-  Arrow Keys - Steer and thrust
-  UP - Thrust forward
-  DOWN - Brake/slow down
-  LEFT/RIGHT - Rotate
-  Spacebar - Shoot
-  R - Restart game
-  N - Next level (when level complete)
+╔══════════════════════════════════════════════════════════════╗
+║                🚀 ASTEROID SHOOTER GAME 🌌                  ║
+╚══════════════════════════════════════════════════════════════╝
 
-Objective: Destroy all asteroids!
-Large asteroids break into smaller ones.
-Avoid colliding with asteroids!
+🎮 CONTROLS:
+   ⬆️  UP Arrow    - Thrust forward
+   ⬇️  DOWN Arrow  - Brake/slow down
+   ⬅️  LEFT Arrow  - Rotate left
+   ➡️  RIGHT Arrow - Rotate right
+   🚀 SPACEBAR    - Shoot
+   📊 R Key       - Show game report (after game over)
+   🔄 S Key       - Start new game
+   ➡️  N Key       - Next level (when available)
 
+🎯 OBJECTIVES:
+   💥 Destroy all asteroids to advance levels
+   🌟 Survive as long as possible
+   📈 Get the highest score
+
+Press any key to start!
