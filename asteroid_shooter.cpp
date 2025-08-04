@@ -23,6 +23,7 @@ struct Ship {
     float angle;
     Point velocity;
     bool thrusting;
+    bool reverseThrusting;
     float size;
 };
 
@@ -66,6 +67,7 @@ int mediumAsteroidsDestroyed = 0;
 int smallAsteroidsDestroyed = 0;
 int livesLost = 0;
 time_t gameStartTime;
+time_t gameEndTime;
 bool showScoreReport = false;
 
 // Game constants
@@ -86,12 +88,14 @@ void displayGameReport();
 void initGame() {
     srand(time(0));
     gameStartTime = time(0);
+    gameEndTime = 0;
 
     // Initialize player
     player.pos = Point(0, 0);
     player.angle = 0;
     player.velocity = Point(0, 0);
     player.thrusting = false;
+    player.reverseThrusting = false;
     player.size = SHIP_SIZE;
 
     // Clear vectors
@@ -150,7 +154,8 @@ void createAsteroids(int count) {
 void displayGameReport() {
     glClear(GL_COLOR_BUFFER_BIT);
 
-    float survivalTime = difftime(time(0), gameStartTime);
+    // Calculate survival time - use gameEndTime if game is over, otherwise current time
+    float survivalTime = (gameEndTime > 0) ? difftime(gameEndTime, gameStartTime) : difftime(time(0), gameStartTime);
     int rating = (score / 1000) + (totalAsteroidsDestroyed / 10) + (level * 5);
 
     const char* rank = "Cadet";
@@ -315,6 +320,15 @@ void drawShip(const Ship& ship) {
         glEnd();
     }
 
+    if (ship.reverseThrusting) {
+        glColor3f(0.0f, 0.7f, 1.0f); // Blue flames for reverse thrust
+        glBegin(GL_TRIANGLES);
+        glVertex2f(ship.size, 0);
+        glVertex2f(ship.size * 1.5f, ship.size * 0.3f);
+        glVertex2f(ship.size * 1.5f, -ship.size * 0.3f);
+        glEnd();
+    }
+
     glPopMatrix();
 }
 
@@ -386,7 +400,7 @@ void drawHUD() {
 
     glColor3f(0.7f, 0.7f, 0.7f);
     glRasterPos2f(-0.95f, -0.85f);
-    const char* controls = "Controls: Arrows=Move, Space=Shoot, R=Report, S=Restart";
+    const char* controls = "Controls: Up/Down=Thrust, Left/Right=Rotate, Space=Shoot, R=Report, S=Restart";
     for (int i = 0; controls[i]; i++) {
         glutBitmapCharacter(GLUT_BITMAP_HELVETICA_12, controls[i]);
     }
@@ -415,6 +429,7 @@ void updateGame() {
 
     if (specialKeys[GLUT_KEY_UP]) {
         player.thrusting = true;
+        player.reverseThrusting = false;
         player.velocity.x += cos(player.angle) * THRUST;
         player.velocity.y += sin(player.angle) * THRUST;
     }
@@ -431,8 +446,14 @@ void updateGame() {
     }
 
     if (specialKeys[GLUT_KEY_DOWN]) {
-        player.velocity.x *= 0.9f;
-        player.velocity.y *= 0.9f;
+        // Reverse thrust - move backward
+        player.reverseThrusting = true;
+        player.thrusting = false;
+        player.velocity.x -= cos(player.angle) * THRUST;
+        player.velocity.y -= sin(player.angle) * THRUST;
+    }
+    else if (!specialKeys[GLUT_KEY_UP]) {
+        player.reverseThrusting = false;
     }
 
     player.velocity.x *= FRICTION;
@@ -534,6 +555,7 @@ void updateGame() {
 
                 if (lives <= 0) {
                     gameOver = true;
+                    gameEndTime = time(0);
                 }
                 break;
             }
@@ -676,7 +698,7 @@ int main(int argc, char** argv) {
     printf("╚══════════════════════════════════════════════════════════════╝\n\n");
     printf("🎮 CONTROLS:\n");
     printf("   ⬆️  UP Arrow    - Thrust forward\n");
-    printf("   ⬇️  DOWN Arrow  - Brake/slow down\n");
+    printf("   ⬇️  DOWN Arrow  - Reverse thrust (go backward)\n");
     printf("   ⬅️  LEFT Arrow  - Rotate left\n");
     printf("   ➡️  RIGHT Arrow - Rotate right\n");
     printf("   🚀 SPACEBAR    - Shoot\n");

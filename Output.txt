@@ -4,7 +4,7 @@
 
 🎮 CONTROLS:
    ⬆️  UP Arrow    - Thrust forward
-   ⬇️  DOWN Arrow  - Brake/slow down
+   ⬇️  DOWN Arrow  - Reverse thrust (go backward)
    ⬅️  LEFT Arrow  - Rotate left
    ➡️  RIGHT Arrow - Rotate right
    🚀 SPACEBAR    - Shoot
